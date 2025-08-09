@@ -6,14 +6,15 @@ plugins {
 }
 
 android {
-    compileSdk = 35
+    compileSdk = 34
+    buildToolsVersion = "34.0.0"
 
     defaultConfig {
         applicationId = "helium314.keyboard"
         minSdk = 21
-        targetSdk = 35
-        versionCode = 3301
-        versionName = "3.3"
+        targetSdk = 34
+        versionCode = 3002
+        versionName = "3.0-alpha2"
         ndk {
             abiFilters.clear()
             abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64"))
