@@ -10,11 +10,11 @@ android {
     buildToolsVersion = "34.0.0"
 
     defaultConfig {
-        applicationId = "helium314.keyboard"
+        applicationId = "helium314.keyboard.sdk34"
         minSdk = 21
         targetSdk = 34
         versionCode = 3002
-        versionName = "3.0-alpha2"
+        versionName = "3.2-sdk34"
         ndk {
             abiFilters.clear()
             abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64"))
@@ -111,23 +111,23 @@ dependencies {
     implementation("androidx.viewpager2:viewpager2:1.1.0")
 
     // kotlin
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
 
     // compose
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
-    implementation(platform("androidx.compose:compose-bom:2025.08.00"))
+    implementation(platform("androidx.compose:compose-bom:2025.02.00"))
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.ui:ui-tooling-preview")
     debugImplementation("androidx.compose.ui:ui-tooling")
-    implementation("androidx.navigation:navigation-compose:2.9.3")
+    implementation("androidx.navigation:navigation-compose:2.8.8")
     implementation("sh.calvin.reorderable:reorderable:2.4.3") // for easier re-ordering
     implementation("com.github.skydoves:colorpicker-compose:1.1.2") // for user-defined colors
 
     // test
     testImplementation(kotlin("test"))
     testImplementation("junit:junit:4.13.2")
-    testImplementation("org.mockito:mockito-core:5.17.0")
-    testImplementation("org.robolectric:robolectric:4.14.1")
+    testImplementation("org.mockito:mockito-core:5.15.2")
+    testImplementation("org.robolectric:robolectric:4.12.1")
     testImplementation("androidx.test:runner:1.6.2")
     testImplementation("androidx.test:core:1.6.1")
 }
