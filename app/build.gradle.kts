@@ -105,8 +105,8 @@ android {
 
 dependencies {
     // androidx
-    implementation("androidx.core:core-ktx:1.16.0") // 1.17 requires SDK 36
-    implementation("androidx.recyclerview:recyclerview:1.4.0")
+    implementation("androidx.core:core-ktx:1.13.1")
+    implementation("androidx.recyclerview:recyclerview:1.3.2")
     implementation("androidx.autofill:autofill:1.3.0")
     implementation("androidx.viewpager2:viewpager2:1.1.0")
 
