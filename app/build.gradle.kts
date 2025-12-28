@@ -129,7 +129,7 @@ dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
     implementation(platform("androidx.compose:compose-bom:2025.02.00"))
     
-    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui:1.5.0")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.ui:ui-tooling-preview")
     debugImplementation("androidx.compose.ui:ui-tooling")
