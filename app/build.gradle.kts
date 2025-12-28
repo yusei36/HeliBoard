@@ -1,3 +1,5 @@
+import com.android.build.api.variant.ApplicationVariant
+
 plugins {
     id("com.android.application")
     kotlin("android")
@@ -10,11 +12,11 @@ android {
     buildToolsVersion = "34.0.0"
 
     defaultConfig {
-        applicationId = "helium314.keyboard.sdk34"
+        applicationId = "helium314.keyboard.sdk343603"
         minSdk = 21
         targetSdk = 34
-        versionCode = 3301
-        versionName = "3.3-sdk34"
+        versionCode = 3603
+        versionName = "3.6"
         ndk {
             abiFilters.clear()
             abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64"))
@@ -54,6 +56,16 @@ android {
             applicationIdSuffix = ".debug"
         }
         base.archivesBaseName = "HeliBoard_" + defaultConfig.versionName
+        // got a little too big for GitHub after some dependency upgrades, so we remove the largest dictionary
+        androidComponents.onVariants { variant: ApplicationVariant ->
+            if (variant.buildType == "debug") {
+                variant.androidResources.ignoreAssetsPatterns = listOf("main_ro.dict")
+                variant.proguardFiles = emptyList()
+                //noinspection ProguardAndroidTxtUsage we intentionally use the "normal" file here
+                variant.proguardFiles.add(project.layout.buildDirectory.file(getDefaultProguardFile("proguard-android.txt").absolutePath))
+                variant.proguardFiles.add(project.layout.buildDirectory.file(project.buildFile.parent + "/proguard-rules.pro"))
+            }
+        }
     }
 
     buildFeatures {
