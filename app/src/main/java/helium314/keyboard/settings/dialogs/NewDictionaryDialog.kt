@@ -33,7 +33,6 @@ import helium314.keyboard.settings.WithSmallTitle
 import java.io.File
 import java.util.Locale
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalResources
 import helium314.keyboard.latin.RichInputMethodManager
 
 @Composable
@@ -95,7 +94,7 @@ fun NewDictionaryDialog(
                             selectedItem = locale,
                             onSelected = { locale = it },
                             items = locales
-                        ) { Text(it.localizedDisplayName(LocalResources.current)) }
+                        ) { Text(it.localizedDisplayName(ctx.resources)) }
                     }
                     if (locale.script() != dictLocale.script()) {
                         // whatever, still allow it if the user wants
