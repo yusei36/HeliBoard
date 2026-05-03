@@ -27,12 +27,14 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import helium314.keyboard.event.Event;
 import helium314.keyboard.keyboard.KeyboardLayoutSet.KeyboardLayoutSetException;
 import helium314.keyboard.keyboard.clipboard.ClipboardHistoryView;
 import helium314.keyboard.keyboard.emoji.EmojiPalettesView;
 import helium314.keyboard.keyboard.internal.KeyboardState;
+import helium314.keyboard.keyboard.internal.keyboard_parser.EmojiParserKt;
 import helium314.keyboard.latin.InputView;
 import helium314.keyboard.latin.KeyboardWrapperView;
 import helium314.keyboard.latin.LatinIME;
@@ -44,10 +46,11 @@ import helium314.keyboard.latin.settings.Settings;
 import helium314.keyboard.latin.settings.SettingsValues;
 import helium314.keyboard.latin.suggestions.SuggestionStripView;
 import helium314.keyboard.latin.utils.CapsModeUtils;
+import helium314.keyboard.latin.utils.FoldableUtils;
 import helium314.keyboard.latin.utils.KtxKt;
 import helium314.keyboard.latin.utils.LanguageOnSpacebarUtils;
 import helium314.keyboard.latin.utils.Log;
-import helium314.keyboard.latin.utils.RecapitalizeStatus;
+import helium314.keyboard.latin.utils.RecapitalizeMode;
 import helium314.keyboard.latin.utils.ResourceUtils;
 import helium314.keyboard.latin.utils.ScriptUtils;
 import helium314.keyboard.latin.utils.SubtypeUtilsAdditional;
@@ -113,6 +116,9 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             settings.loadSettings(displayContext, settings.getCurrent().mLocale, settings.getCurrent().mInputAttributes);
             if (mKeyboardView != null)
                 mLatinIME.setInputView(onCreateInputView(displayContext, mIsHardwareAcceleratedDrawingEnabled));
+        } else if (mCurrentInputView != null && mLatinIME.hasSuggestionStripView()
+                    == (Settings.getValues().mToolbarMode == ToolbarMode.HIDDEN || mLatinIME.isEmojiSearch())) {
+            mLatinIME.updateSuggestionStripView(mCurrentInputView);
         }
     }
 
@@ -139,7 +145,8 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     }
 
     public void loadKeyboard(final EditorInfo editorInfo, final SettingsValues settingsValues,
-            final int currentAutoCapsState, final int currentRecapitalizeState, KeyboardLayoutSet.InternalAction internalAction) {
+            final int currentAutoCapsState, @Nullable final RecapitalizeMode currentRecapitalizeState,
+            KeyboardLayoutSet.InternalAction internalAction) {
         final KeyboardLayoutSet.Builder builder = new KeyboardLayoutSet.Builder(
                 mThemeContext, editorInfo);
         final int keyboardWidth = ResourceUtils.getKeyboardWidth(mThemeContext, settingsValues);
@@ -211,6 +218,11 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         final int languageOnSpacebarFormatType = LanguageOnSpacebarUtils.getLanguageOnSpacebarFormatType(newKeyboard.mId.mSubtype);
         final boolean hasMultipleEnabledIMEsOrSubtypes = mRichImm.hasMultipleEnabledIMEsOrSubtypes(true);
         keyboardView.startDisplayLanguageOnSpacebar(subtypeChanged, languageOnSpacebarFormatType, hasMultipleEnabledIMEsOrSubtypes);
+
+        if (currentSettingsValues.needsToLookupSuggestions()
+                                    && (currentSettingsValues.mInlineEmojiSearch || currentSettingsValues.mSuggestEmojis)) {
+            EmojiParserKt.loadEmojiDefaultVersionsAndPopupSpecs(mThemeContext);
+        }
     }
 
     public Keyboard getKeyboard() {
@@ -223,22 +235,22 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     // TODO: Remove this method. Come up with a more comprehensive way to reset the keyboard layout
     // when a keyboard layout set doesn't get reloaded in LatinIME.onStartInputViewInternal().
     public void resetKeyboardStateToAlphabet(final int currentAutoCapsState,
-            final int currentRecapitalizeState) {
+            @Nullable final RecapitalizeMode currentRecapitalizeState) {
         mState.onResetKeyboardStateToAlphabet(currentAutoCapsState, currentRecapitalizeState);
     }
 
     public void onPressKey(final int code, final boolean isSinglePointer,
-            final int currentAutoCapsState, final int currentRecapitalizeState) {
+            final int currentAutoCapsState, @Nullable final RecapitalizeMode currentRecapitalizeState) {
         mState.onPressKey(code, isSinglePointer, currentAutoCapsState, currentRecapitalizeState);
     }
 
     public void onReleaseKey(final int code, final boolean withSliding,
-            final int currentAutoCapsState, final int currentRecapitalizeState) {
+            final int currentAutoCapsState, @Nullable final RecapitalizeMode currentRecapitalizeState) {
         mState.onReleaseKey(code, withSliding, currentAutoCapsState, currentRecapitalizeState);
     }
 
     public void onFinishSlidingInput(final int currentAutoCapsState,
-            final int currentRecapitalizeState) {
+            @Nullable final RecapitalizeMode currentRecapitalizeState) {
         mState.onFinishSlidingInput(currentAutoCapsState, currentRecapitalizeState);
     }
 
@@ -315,7 +327,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             @NonNull final SettingsValues settingsValues,
             @NonNull final KeyboardSwitchState toggleState) {
         final int visibility = isImeSuppressedByHardwareKeyboard(settingsValues, toggleState) ? View.GONE : View.VISIBLE;
-        final int stripVisibility = settingsValues.mToolbarMode == ToolbarMode.HIDDEN ? View.GONE : View.VISIBLE;
+        final int stripVisibility = mLatinIME.hasSuggestionStripView()? View.VISIBLE : View.GONE;
         mStripContainer.setVisibility(stripVisibility);
         PointerTracker.switchTo(mKeyboardView);
         mKeyboardView.setVisibility(visibility);
@@ -384,8 +396,8 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     }
 
     @Override
-    public void toggleNumpad(final boolean withSliding, final int autoCapsFlags, final int recapitalizeMode,
-            final boolean forceReturnToAlpha) {
+    public void toggleNumpad(final boolean withSliding, final int autoCapsFlags,
+            @Nullable final RecapitalizeMode recapitalizeMode, final boolean forceReturnToAlpha) {
         if (DEBUG_ACTION) {
             Log.d(TAG, "toggleNumpad");
         }
@@ -452,11 +464,11 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
 
     // Future method for requesting an updating to the shift state.
     @Override
-    public void requestUpdatingShiftState(final int autoCapsFlags, final int recapitalizeMode) {
+    public void requestUpdatingShiftState(final int autoCapsFlags, @Nullable final RecapitalizeMode recapitalizeMode) {
         if (DEBUG_ACTION) {
             Log.d(TAG, "requestUpdatingShiftState: "
                     + " autoCapsFlags=" + CapsModeUtils.flagsToString(autoCapsFlags)
-                    + " recapitalizeMode=" + RecapitalizeStatus.modeToString(recapitalizeMode));
+                    + " recapitalizeMode=" + recapitalizeMode);
         }
         mState.onUpdateShiftState(autoCapsFlags, recapitalizeMode);
     }
@@ -513,8 +525,9 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     public void toggleSplitKeyboardMode() {
         final Settings settings = Settings.getInstance();
         settings.writeSplitKeyboardEnabled(
-                !settings.getCurrent().mIsSplitKeyboardEnabled,
-                mCurrentOrientation == Configuration.ORIENTATION_LANDSCAPE
+            !settings.getCurrent().mIsSplitKeyboardEnabled,
+            mCurrentOrientation == Configuration.ORIENTATION_LANDSCAPE,
+            FoldableUtils.INSTANCE.isFolded()
         );
         setOneHandedModeEnabled(settings.getCurrent().mOneHandedModeEnabled, true);
         reloadKeyboard();
@@ -598,7 +611,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
      * Updates state machine to figure out when to automatically switch back to the previous mode.
      */
     public void onEvent(final Event event, final int currentAutoCapsState,
-            final int currentRecapitalizeState) {
+            @Nullable final RecapitalizeMode currentRecapitalizeState) {
         mState.onEvent(event, currentAutoCapsState, currentRecapitalizeState);
     }
 
@@ -635,6 +648,10 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
 
     public boolean isShowingStripContainer() {
         return mStripContainer.isShown();
+    }
+
+    public EmojiPalettesView getEmojiPalettesView() {
+        return mEmojiPalettesView;
     }
 
     public View getVisibleKeyboardView() {

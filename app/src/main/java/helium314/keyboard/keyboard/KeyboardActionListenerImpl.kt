@@ -142,23 +142,44 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
         if (requestCode == Constants.CUSTOM_CODE_SHOW_INPUT_METHOD_PICKER) {
             return latinIME.showInputPickerDialog()
         }
+        if (requestCode == Constants.CODE_TOUCHPAD_ON) {
+            keyboardSwitcher.mainKeyboardView?.alpha = 0.5f
+            return true
+        }
+        if (requestCode == Constants.CODE_TOUCHPAD_OFF) {
+            keyboardSwitcher.mainKeyboardView?.alpha = 1.0f
+            return true
+        }
         return false
     }
 
     override fun onHorizontalSpaceSwipe(steps: Int): Boolean = when (Settings.getValues().mSpaceSwipeHorizontal) {
-        KeyboardActionListener.SWIPE_MOVE_CURSOR -> onMoveCursorHorizontally(steps)
-        KeyboardActionListener.SWIPE_SWITCH_LANGUAGE -> onLanguageSlide(steps)
-        KeyboardActionListener.SWIPE_TOGGLE_NUMPAD -> toggleNumpad(false, false)
+        KeyboardActionListener.SwipeAction.MOVE_CURSOR -> onMoveCursorHorizontally(steps)
+        KeyboardActionListener.SwipeAction.SWITCH_LANGUAGE -> onLanguageSlide(steps)
+        KeyboardActionListener.SwipeAction.TOGGLE_NUMPAD -> toggleNumpad(false, false)
         else -> false
     }
 
     override fun onVerticalSpaceSwipe(steps: Int): Boolean = when (Settings.getValues().mSpaceSwipeVertical) {
-        KeyboardActionListener.SWIPE_MOVE_CURSOR -> onMoveCursorVertically(steps)
-        KeyboardActionListener.SWIPE_SWITCH_LANGUAGE -> onLanguageSlide(steps)
-        KeyboardActionListener.SWIPE_TOGGLE_NUMPAD -> toggleNumpad(false, false)
-        KeyboardActionListener.SWIPE_HIDE_KEYBOARD -> {
+        KeyboardActionListener.SwipeAction.MOVE_CURSOR -> onMoveCursorVertically(steps)
+        KeyboardActionListener.SwipeAction.SWITCH_LANGUAGE -> onLanguageSlide(steps)
+        KeyboardActionListener.SwipeAction.TOGGLE_NUMPAD -> toggleNumpad(false, false)
+        KeyboardActionListener.SwipeAction.HIDE_KEYBOARD -> {
             latinIME.requestHideSelf(0)
             true
+        }
+        KeyboardActionListener.SwipeAction.TOUCHPAD_MODE -> {
+            // Activate touchpad mode - the actual cursor movement will be handled in PointerTracker
+
+            // Activation and ensure enough room for navigation.
+            val requiredSteps = 8
+
+            if (abs(steps) >= requiredSteps) {
+                TouchpadHandler.setTouchpadModeActive(true)
+                true
+            } else {
+                false
+            }
         }
         else -> false
     }
@@ -256,7 +277,8 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
     private fun onMoveCursorHorizontally(rawSteps: Int): Boolean {
         if (rawSteps == 0) return false
         // for RTL languages we want to invert pointer movement
-        val steps = if (RichInputMethodManager.getInstance().currentSubtype.isRtlSubtype) -rawSteps else rawSteps
+        val rtl = RichInputMethodManager.getInstance().currentSubtype.isRtlSubtype
+        val steps = if (rtl) -rawSteps else rawSteps
         val moveSteps: Int
         if (steps < 0) {
             val text = connection.getTextBeforeCursor(-steps * 4, 0) ?: return false
@@ -265,7 +287,8 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
                 // some apps don't return any text via input connection, and the cursor can't be moved
                 // we fall back to virtually pressing the left/right key one or more times instead
                 repeat(-steps) {
-                    onCodeInput(KeyCode.ARROW_LEFT, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
+                    onCodeInput(if (rtl) KeyCode.ARROW_RIGHT else KeyCode.ARROW_LEFT, Constants.NOT_A_COORDINATE,
+                        Constants.NOT_A_COORDINATE, false)
                 }
                 if (text.isNotEmpty()) {
                     gestureMoveBackHaptics()
@@ -280,7 +303,8 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
                 // some apps don't return any text via input connection, and the cursor can't be moved
                 // we fall back to virtually pressing the left/right key one or more times instead
                 repeat(steps) {
-                    onCodeInput(KeyCode.ARROW_RIGHT, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
+                    onCodeInput(if (rtl) KeyCode.ARROW_LEFT else KeyCode.ARROW_RIGHT, Constants.NOT_A_COORDINATE,
+                        Constants.NOT_A_COORDINATE, false)
                 }
                 if (text.isNotEmpty()) {
                     gestureMoveForwardHaptics(true)
@@ -294,7 +318,7 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
         // issues:
         //  * setSelection "will cause the editor to call onUpdateSelection", see: https://developer.android.com/reference/android/view/inputmethod/InputConnection#setSelection(int,%20int)
         //     but Firefox is simply not doing this within the same word... WTF?
-        //     https://github.com/Helium314/HeliBoard/issues/1139#issuecomment-2588169384
+        //     https://github.com/HeliBorg/HeliBoard/issues/1139#issuecomment-2588169384
         //  * inputType is NOT of variant InputType.TYPE_TEXT_VARIATION_WEB_EDIT_TEXT (variant appears to always be 0)
         //     -> this is "fixed" now using AppWorkarounds.adjustInputType
         val variation = InputType.TYPE_MASK_VARIATION and Settings.getValues().mInputAttributes.mInputType

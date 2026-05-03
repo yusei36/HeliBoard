@@ -115,7 +115,8 @@ fun NewDictionaryDialog(
                         )
                     }
                 }
-            }
+            },
+            scrollContent = true,
         )
     }
 }

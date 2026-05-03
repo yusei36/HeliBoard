@@ -8,6 +8,7 @@ package helium314.keyboard.latin
 import android.text.TextUtils
 import com.android.inputmethod.latin.utils.BinaryDictionaryUtils
 import helium314.keyboard.keyboard.Keyboard
+import helium314.keyboard.keyboard.internal.keyboard_parser.getEmojiDefaultVersion
 import helium314.keyboard.latin.SuggestedWords.SuggestedWordInfo
 import helium314.keyboard.latin.common.ComposedData
 import helium314.keyboard.latin.common.Constants
@@ -120,6 +121,8 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
         } else {
             inputStyleIfNotPrediction
         }
+
+        useDefaultEmojiSkinTone(suggestionsList)
 
         // If there is an incoming autocorrection, make sure typed word is shown, so user is able to override it.
         // Otherwise, if the relevant setting is enabled, show the typed word in the middle.
@@ -269,11 +272,11 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
             wordComposer.composedDataSnapshot, ngramContext, keyboard,
             settingsValuesForSuggestion, SESSION_ID_GESTURE, inputStyle
         )
-        replaceSingleLetterFirstSuggestion(suggestionResults)
 
         // For transforming words that don't come from a dictionary, because it's our best bet
         val locale = mDictionaryFacilitator.mainLocale
         val suggestionsContainer = ArrayList(suggestionResults)
+        replaceSingleLetterFirstSuggestion(suggestionsContainer)
         val suggestionsCount = suggestionsContainer.size
         val keyboardShiftMode = keyboard.mId.keyboardCapsMode
         val shouldMakeSuggestionsOnlyFirstCharCapitalized = wordComposer.wasShiftedNoLock()
@@ -322,6 +325,8 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
             )
         }
 
+        useDefaultEmojiSkinTone(suggestionsContainer)
+
         // In the batch input mode, the most relevant suggested word should act as a "typed word"
         // (typedWordValid=true), not as an "auto correct word" (willAutoCorrect=false).
         // Note that because this method is never used to get predictions, there is no need to
@@ -337,6 +342,12 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
         }
         return SuggestedWords(suggestionsList, suggestionResults.mRawSuggestions, pseudoTypedWordInfo, true,
             false, false, inputStyle, sequenceNumber)
+    }
+
+    private fun useDefaultEmojiSkinTone(suggestionsList: ArrayList<SuggestedWordInfo>) {
+        for (i in suggestionsList.indices) {
+            suggestionsList[i] = useDefaultEmojiSkinTone(suggestionsList[i])
+        }
     }
 
     /** get suggestions based on the current ngram context, with an empty typed word (that's what next word suggestions do)  */
@@ -418,6 +429,17 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
             wordInfo.debugString = scoreInfoString
         }
 
+        @JvmStatic
+        fun useDefaultEmojiSkinTone(suggestion: SuggestedWordInfo): SuggestedWordInfo {
+            val defaultVersion = getEmojiDefaultVersion(suggestion.mWord)
+            if (defaultVersion == suggestion.mWord) {
+                return suggestion
+            }
+
+            return SuggestedWordInfo(defaultVersion, suggestion.mPrevWordsContext, suggestion.mScore, suggestion.mKindAndFlags,
+                suggestion.mSourceDict, suggestion.mIndexOfTouchPointOfSecondWord, suggestion.mAutoCommitFirstWordConfidence)
+        }
+
         /**
          * Computes whether this suggestion should be blocked or not in this language
          *
@@ -490,21 +512,22 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
             }
         }
 
-        /** reduces score of the first suggestion if next one is close and has more than a single letter  */
-        private fun replaceSingleLetterFirstSuggestion(suggestionResults: SuggestionResults) {
+        /** reduces score of the first suggestion if next one is close and has more than a single letter */
+        private fun replaceSingleLetterFirstSuggestion(suggestionResults: MutableList<SuggestedWordInfo>) {
             if (suggestionResults.size < 2 || suggestionResults.first().mWord.length != 1) return
             // suppress single letter suggestions if next suggestion is close and has more than one letter
-            val iterator: Iterator<SuggestedWordInfo> = suggestionResults.iterator()
-            val first = iterator.next()
-            val second = iterator.next()
+            val first = suggestionResults[0]
+            val second = suggestionResults[1]
             if (second.mWord.length > 1 && second.mScore > 0.94 * first.mScore) {
                 suggestionResults.remove(first) // remove and re-add with lower score
-                suggestionResults.add(
-                    SuggestedWordInfo(
-                        first.mWord, first.mPrevWordsContext, (first.mScore * 0.93).toInt(),
-                        first.mKindAndFlags, first.mSourceDict, first.mIndexOfTouchPointOfSecondWord, first.mAutoCommitFirstWordConfidence
-                    )
+                val modifiedFirst = SuggestedWordInfo(
+                    first.mWord, first.mPrevWordsContext, (first.mScore * 0.93).toInt(),
+                    first.mKindAndFlags, first.mSourceDict, first.mIndexOfTouchPointOfSecondWord, first.mAutoCommitFirstWordConfidence
                 )
+                val insertIndex = suggestionResults.indexOfFirst { it.mScore < modifiedFirst.mScore }
+                if (insertIndex == -1) suggestionResults.add(modifiedFirst)
+                else suggestionResults.add(insertIndex, modifiedFirst)
+
                 if (DebugFlags.DEBUG_ENABLED)
                     Log.d(TAG, "reduced score of ${first.mWord} from ${first.mScore}, new first: ${suggestionResults.first().mWord} (${suggestionResults.first().mScore})")
             }
