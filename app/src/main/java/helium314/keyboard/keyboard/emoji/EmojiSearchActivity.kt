@@ -274,7 +274,7 @@ class EmojiSearchActivity : ComponentActivity() {
             intent.putExtra(EMOJI_KEY, if (it.code == KeyCode.MULTIPLE_CODE_POINTS)
                 it.getOutputText()
             else
-                Character.toString(it.code))
+                String(Character.toChars(it.code)))
 
             KeyboardSwitcher.getInstance().emojiPalettesView.addRecentKey(it)
         }

@@ -102,7 +102,7 @@ fun painterResourceCompat(@DrawableRes resId: Int, sizeDp: Int = 40): Painter {
     return if (drawable is VectorDrawable || drawable is BitmapDrawable)
         painterResource(resId)
     else {
-        val px = sizeDp.dpToPx(LocalResources.current)
+        val px = sizeDp.dpToPx(ctx.resources)
         BitmapPainter(drawable!!.toBitmap(px, px).asImageBitmap())
     }
 }

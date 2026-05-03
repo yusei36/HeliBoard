@@ -127,8 +127,8 @@ android {
 
 dependencies {
     // androidx
-    implementation("androidx.core:core-ktx:1.17.0") // 1.18.0 requires minSdk 23
-    implementation("androidx.recyclerview:recyclerview:1.4.0")
+    implementation("androidx.core:core-ktx:1.13.1") // 1.17.0+ requires compileSdk 35
+    implementation("androidx.recyclerview:recyclerview:1.3.2") // 1.4.0 requires compileSdk 35
     implementation("androidx.autofill:autofill:1.3.0")
     implementation("androidx.viewpager2:viewpager2:1.1.0")
 
@@ -137,16 +137,14 @@ dependencies {
 
     // compose
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
-    // newer than 2025.11.01 contains androidx.compose.material:material-android:1.10.0, which requires minSdk 23
-    // maybe it's possible to use tools:overrideLibrary="androidx.compose.material" as it's not used explicitly, but probably this is just going to crash
-    implementation(platform("androidx.compose:compose-bom:2025.11.01"))
+    implementation(platform("androidx.compose:compose-bom:2025.02.00")) // 2025.11.01+ requires compileSdk 35
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.ui:ui-tooling-preview")
     debugImplementation("androidx.compose.ui:ui-tooling")
     "debugNoMinifyImplementation"("androidx.compose.ui:ui-tooling")
-    implementation("androidx.navigation:navigation-compose:2.9.8")
-    implementation("sh.calvin.reorderable:reorderable:3.1.0") // for easier re-ordering
-    implementation("com.github.skydoves:colorpicker-compose:1.1.3") // for user-defined colors
+    implementation("androidx.navigation:navigation-compose:2.8.8") // 2.9.x requires compileSdk 35
+    implementation("sh.calvin.reorderable:reorderable:2.4.3") // for easier re-ordering; 3.x requires compileSdk 35
+    implementation("com.github.skydoves:colorpicker-compose:1.1.2") // for user-defined colors; 1.1.3 requires compileSdk 35
 
     // test
     testImplementation(kotlin("test"))

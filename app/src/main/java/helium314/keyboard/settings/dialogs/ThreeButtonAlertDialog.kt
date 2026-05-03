@@ -8,6 +8,7 @@ package helium314.keyboard.settings.dialogs
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -32,6 +33,7 @@ import androidx.compose.ui.window.DialogProperties
 import helium314.keyboard.latin.utils.Theme
 import helium314.keyboard.latin.utils.previewDark
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ThreeButtonAlertDialog(
     onDismissRequest: () -> Unit,

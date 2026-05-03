@@ -2,6 +2,7 @@
 package helium314.keyboard.settings.screens.gesturedata
 
 import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -20,8 +21,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.ClipEntry
-import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.core.content.FileProvider
@@ -88,9 +87,9 @@ fun ShareGestureData(ids: List<Long>) {
         }
 
         // copy mail address to clipboard, in case user doesn't use the mail intent
-        val clip = LocalClipboard.current
         ButtonWithText(stringResource(R.string.gesture_data_copy_mail)) {
-            scope.launch { clip.setClipEntry(ClipEntry(ClipData.newPlainText("mail address", deobfuscateEmail(ctx)))) }
+            val clipboard = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            clipboard.setPrimaryClip(ClipData.newPlainText("mail address", deobfuscateEmail(ctx)))
         }
         Text(stringResource(R.string.gesture_data_mail_use))
     } else {
