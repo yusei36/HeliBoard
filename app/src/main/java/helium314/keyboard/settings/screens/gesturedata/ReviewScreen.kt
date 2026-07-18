@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package helium314.keyboard.settings.screens.gesturedata
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -169,23 +170,26 @@ fun ReviewScreen(
             LazyColumn(state = wordListState) {
                 items(gestureDataInfos, { it.id }) { item ->
                     val dismissState = rememberSwipeToDismissBoxState()
+                    // sdk34 compat: material3 1.3.x has no onDismiss parameter, react to the settled state instead
+                    LaunchedEffect(dismissState.currentValue) {
+                        if (dismissState.currentValue == SwipeToDismissBoxValue.StartToEnd && item.id !in deleteJobs) {
+                            deleteJobs[item.id] = scope.launch {
+                                delay(4000)
+                                dao?.delete(listOf(item.id), false, ctx)
+                                gestureDataInfos = gestureDataInfos - item
+                            }
+                        }
+                    }
                     // todo: how to prevent SwipeToDismissBox from taking the EndToStart gesture? because of this we can't swipe up nicely...
                     //  in general it should be less sensitive to swiping the wrong direction
                     SwipeToDismissBox(
                         state = dismissState,
                         enableDismissFromEndToStart = false,
                         gesturesEnabled = selected.isEmpty(),
-                        onDismiss = {
-                            deleteJobs[item.id] = scope.launch {
-                                delay(4000)
-                                dao?.delete(listOf(item.id), false, ctx)
-                                gestureDataInfos = gestureDataInfos - item
-                            }
-                        },
                         backgroundContent = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(painterResource(R.drawable.ic_bin), stringResource(R.string.delete))
-                                val undoVisible = dismissState.progress == 1f && dismissState.settledValue == SwipeToDismissBoxValue.StartToEnd
+                                val undoVisible = dismissState.progress == 1f && dismissState.currentValue == SwipeToDismissBoxValue.StartToEnd
                                 TextButton(
                                     onClick = {
                                         deleteJobs.remove(item.id)?.cancel()
@@ -270,6 +274,7 @@ fun ReviewScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun GestureDataEntry(
     gestureDataInfo: GestureDataInfo,
