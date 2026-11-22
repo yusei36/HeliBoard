@@ -1,11 +1,9 @@
 import com.android.build.api.variant.ApplicationVariant
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id("com.android.application")
-    kotlin("android")
-    kotlin("plugin.serialization") version "2.3.20"
-    kotlin("plugin.compose") version "2.3.20"
+    kotlin("plugin.serialization") version "2.4.0"
+    kotlin("plugin.compose") version "2.4.0"
 }
 
 android {
@@ -16,8 +14,8 @@ android {
         applicationId = "helium314.keyboard.sdk34"
         minSdk = 21
         targetSdk = 34
-        versionCode = 4005
-        versionName = "4.0"
+        versionCode = 4201
+        versionName = "4.2"
         ndk {
             abiFilters.clear()
             abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64"))
@@ -55,6 +53,7 @@ android {
             isJniDebuggable = false
             signingConfig = signingConfigs.getByName("debug")
             applicationIdSuffix = ".debug"
+            isDefault = true
         }
 
         androidComponents.onVariants { variant: ApplicationVariant ->
@@ -105,14 +104,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlin {
-        target {
-            compilerOptions {
-                jvmTarget.set(JvmTarget.JVM_17)
-            }
-        }
-    }
-
     // see https://github.com/HeliBorg/HeliBoard/issues/477
     dependenciesInfo {
         includeInApk = false
@@ -149,6 +140,7 @@ dependencies {
     // test
     testImplementation(kotlin("test"))
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit")
     testImplementation("org.mockito:mockito-core:5.23.0")
     testImplementation("org.robolectric:robolectric:4.16.1")
     testImplementation("androidx.test:runner:1.7.0")
