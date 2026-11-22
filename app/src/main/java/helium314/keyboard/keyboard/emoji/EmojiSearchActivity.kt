@@ -282,7 +282,7 @@ class EmojiSearchActivity : ComponentActivity() {
     private fun getEmoji(key: Key): String? = if (key.code == KeyCode.MULTIPLE_CODE_POINTS)
         key.getOutputText()
     else
-        Character.toString(key.code)
+        String(Character.toChars(key.code)) // Character.toString(Int) missing from SDK 34 stubs
 
     private fun init() {
         Log.d(TAG, "init start")
